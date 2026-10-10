@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import pytest
 import torch
 
 from gpt_from_scratch import GPT, CharTokenizer, DataLoaderLite, GPTConfig, get_batch, get_lr, train
-from gpt_from_scratch.data import split_tokens
-from gpt_from_scratch.train import main
+from gpt_from_scratch.data import DEFAULT_TEXT, split_tokens
+from gpt_from_scratch.train import estimate_loss, main
 
 TEXT = "to be, or not to be, that is the question. " * 200
 CFG = GPTConfig(block_size=16, vocab_size=0, n_layer=2, n_head=2, n_embd=32)
@@ -99,4 +101,26 @@ def test_cli_runs(capsys: pytest.CaptureFixture[str]) -> None:
             "10",
         ]
     )
-    assert "final loss" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "final loss" in out and "val loss" in out
+
+
+def test_estimate_loss_is_near_uniform_at_init_and_restores_mode() -> None:
+    torch.manual_seed(0)
+    tok, data = tokens()
+    model = GPT(GPTConfig(16, tok.vocab_size, 1, 2, 32))
+    model.train()
+    loss = estimate_loss(model, data, 4, 16, iters=5)
+    assert abs(loss - float(torch.log(torch.tensor(float(tok.vocab_size))))) < 1.0
+    assert model.training
+
+
+def test_default_text_ships_inside_the_package_and_data_flag_works(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert DEFAULT_TEXT.parent.name == "gpt_from_scratch" and DEFAULT_TEXT.is_file()
+    corpus = tmp_path / "corpus.txt"
+    corpus.write_text(TEXT)
+    args = ["--steps", "2", "--batch-size", "2", "--block-size", "8", "--n-layer", "1"]
+    main([*args, "--n-head", "2", "--n-embd", "16", "--sample-tokens", "5", "--data", str(corpus)])
+    assert "val loss" in capsys.readouterr().out
