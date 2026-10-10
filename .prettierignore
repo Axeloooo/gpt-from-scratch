@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+package-lock.json
+CHANGELOG.md
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
