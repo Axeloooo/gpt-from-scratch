@@ -7,7 +7,14 @@ import math
 
 import torch
 
-from gpt_from_scratch.data import CharTokenizer, DataLoaderLite, load_text, split_tokens
+from gpt_from_scratch.data import (
+    DEFAULT_TEXT,
+    CharTokenizer,
+    DataLoaderLite,
+    get_batch,
+    load_text,
+    split_tokens,
+)
 from gpt_from_scratch.model import GPT, GPTConfig
 
 
@@ -19,6 +26,29 @@ def get_lr(step: int, max_lr: float, min_lr: float, warmup_steps: int, max_steps
         return min_lr
     ratio = (step - warmup_steps) / (max_steps - warmup_steps)
     return min_lr + 0.5 * (1.0 + math.cos(math.pi * ratio)) * (max_lr - min_lr)
+
+
+@torch.no_grad()
+def estimate_loss(
+    model: GPT,
+    data: torch.Tensor,
+    batch_size: int,
+    block_size: int,
+    iters: int = 20,
+    device: str = "cpu",
+    generator: torch.Generator | None = None,
+) -> float:
+    """Average loss over `iters` random batches in eval mode (lecture 7's `estimate_loss`)."""
+    was_training = model.training
+    model.eval()
+    total = 0.0
+    for _ in range(iters):
+        x, y = get_batch(data, batch_size, block_size, generator)
+        _, loss = model(x.to(device), y.to(device))
+        assert loss is not None
+        total += float(loss)
+    model.train(was_training)
+    return total / iters
 
 
 def train(
@@ -61,6 +91,7 @@ def train(
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(description="Train a GPT on Tiny Shakespeare (character level)")
+    p.add_argument("--data", default=str(DEFAULT_TEXT), help="plain text file to train on")
     p.add_argument("--steps", type=int, default=200)
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--block-size", type=int, default=64)
@@ -75,10 +106,10 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     torch.manual_seed(args.seed)
-    text = load_text()
+    text = load_text(args.data)
     tok = CharTokenizer(text)
     data = torch.tensor(tok.encode(text), dtype=torch.long)
-    train_data, _ = split_tokens(data)
+    train_data, val_data = split_tokens(data)
     config = GPTConfig(
         block_size=args.block_size,
         vocab_size=tok.vocab_size,
@@ -99,6 +130,10 @@ def main(argv: list[str] | None = None) -> None:
         verbose=True,
     )
     print(f"final loss {losses[-1]:.4f}")
+    eval_args = (args.batch_size, args.block_size)
+    train_loss = estimate_loss(model, train_data, *eval_args, device=args.device)
+    val_loss = estimate_loss(model, val_data, *eval_args, device=args.device)
+    print(f"train loss {train_loss:.4f}  val loss {val_loss:.4f}")
     start = torch.zeros((1, 1), dtype=torch.long, device=args.device)
     out = model.generate(start, args.sample_tokens)
     print(tok.decode(out[0].tolist()))
