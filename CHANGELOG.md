@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Axeloooo/gpt-from-scratch/compare/v1.1.0...v1.1.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* ship Tiny Shakespeare in the package and report validation loss ([#7](https://github.com/Axeloooo/gpt-from-scratch/issues/7)) ([7fe2ba4](https://github.com/Axeloooo/gpt-from-scratch/commit/7fe2ba436497e080c9857beefcfe9a5d1a022b0a))
+
 # [1.1.0](https://github.com/Axeloooo/gpt-from-scratch/compare/v1.0.0...v1.1.0) (2026-10-10)
 
 
