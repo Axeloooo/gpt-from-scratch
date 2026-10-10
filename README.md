@@ -27,6 +27,7 @@ pip install -e ".[dev]"
 | Sampling with temperature and top-k                        | `GPT.generate`                            |
 | Warmup + cosine LR, grad accumulation, clipping            | `get_lr`, `train` in `train.py`           |
 | Sequential data loader                                     | `DataLoaderLite` in `data.py`             |
+| Train and validation loss estimate                         | `estimate_loss` in `train.py`             |
 
 `GPTConfig()` defaults to GPT-2 124M (12 layers, 12 heads, 768 dims, vocabulary padded to 50304).
 A test builds it on the `meta` device and checks the parameter count is exactly 124,439,808, the
@@ -35,11 +36,13 @@ same as Hugging Face's `gpt2`.
 ## Run
 
 ```
-python -m gpt_from_scratch --steps 2000      # trains a small GPT on data/input.txt
+python -m gpt_from_scratch --steps 2000      # trains a small GPT on the bundled Tiny Shakespeare
 ```
 
 The defaults are small (4 layers, 128 dims) so it runs on a CPU in seconds and prints a sample of
-generated text. For a better model raise `--steps`, `--n-layer`, `--n-embd` and `--block-size`;
+generated text, after the final train and validation loss (`estimate_loss` in `train.py`).
+`input.txt` (Tiny Shakespeare) ships inside the package, so this works from a regular
+`pip install` too; use `--data path/to/text.txt` to train on your own text. For a better model raise `--steps`, `--n-layer`, `--n-embd` and `--block-size`;
 `--grad-accum` simulates a larger batch and `--device cuda` uses a GPU.
 
 ## Not included
