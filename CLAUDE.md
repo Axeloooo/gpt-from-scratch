@@ -36,7 +36,4 @@ on this repo are Axel. commitlint rejects messages that name Claude in a trailer
 ## Branches and releases
 
 `feature/short-description`, `fix/...`, `docs/...`, `infra/...`. Branch from `devel`; work lands on
-`devel` via PR. Feature PRs and release PRs are squash-merged, so the PR title must be a valid
-conventional commit. Releases: cut `release/YYYY-MM-DD` from `devel`, open a PR into `main` and
-squash-merge it. semantic-release runs on `main`, tags the version and updates `CHANGELOG.md`.
-Never commit to `main` directly.
+`devel` via PR. Feature PRs are squash-merged, so the PR title must be a valid conventional commit. Releases: open a PR from `devel` into `main` and merge it with a merge commit (not squash), so semantic-release sees every commit. `release.yaml` runs semantic-release on `main` with the built-in `GITHUB_TOKEN`, tags the version, updates `CHANGELOG.md` and merges `main` back into `devel`. Never commit to `main` directly.

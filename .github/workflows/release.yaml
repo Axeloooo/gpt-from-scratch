@@ -16,8 +16,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN || github.token }}
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -25,5 +23,12 @@ jobs:
       - run: npm ci
       - run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge main back into devel
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main devel
+          git checkout -B devel origin/devel
+          git merge --no-edit -m "chore: sync main into devel [skip ci]" origin/main
+          git push origin devel
